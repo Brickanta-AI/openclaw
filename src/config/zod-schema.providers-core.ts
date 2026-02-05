@@ -445,6 +445,21 @@ export const SlackThreadSchema = z
   })
   .strict();
 
+export const SlackOrchestrationSchema = z
+  .object({
+    /** If true, route long DM replies to orchestration channel threads. Default: false. */
+    enabled: z.boolean().optional(),
+    /** Channel ID where orchestration threads are created. */
+    channel: z.string().optional(),
+    /** Max characters for DM replies before routing to orchestration. Default: 500. */
+    dmMaxChars: z.number().int().positive().optional(),
+    /** If true, automatically create threads for detailed content. Default: true. */
+    autoThread: z.boolean().optional(),
+    /** Template for DM stub message. Use {link} for thread link. */
+    dmStubTemplate: z.string().optional(),
+  })
+  .strict();
+
 const SlackReplyToModeByChatTypeSchema = z
   .object({
     direct: ReplyToModeSchema.optional(),
@@ -484,6 +499,7 @@ export const SlackAccountSchema = z
     replyToMode: ReplyToModeSchema.optional(),
     replyToModeByChatType: SlackReplyToModeByChatTypeSchema.optional(),
     thread: SlackThreadSchema.optional(),
+    orchestration: SlackOrchestrationSchema.optional(),
     actions: z
       .object({
         reactions: z.boolean().optional(),

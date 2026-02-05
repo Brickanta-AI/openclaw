@@ -75,6 +75,19 @@ export type SlackThreadConfig = {
   inheritParent?: boolean;
 };
 
+export type SlackOrchestrationConfig = {
+  /** If true, route long DM replies to orchestration channel threads. Default: false. */
+  enabled?: boolean;
+  /** Channel ID where orchestration threads are created. */
+  channel?: string;
+  /** Max characters for DM replies before routing to orchestration. Default: 500. */
+  dmMaxChars?: number;
+  /** If true, automatically create threads for detailed content. Default: true. */
+  autoThread?: boolean;
+  /** Template for DM stub message. Use {link} for thread link. Default: "Details → {link}" */
+  dmStubTemplate?: string;
+};
+
 export type SlackAccountConfig = {
   /** Optional display name for this account (used in CLI/UI lists). */
   name?: string;
@@ -136,6 +149,8 @@ export type SlackAccountConfig = {
   replyToModeByChatType?: Partial<Record<"direct" | "group" | "channel", ReplyToMode>>;
   /** Thread session behavior. */
   thread?: SlackThreadConfig;
+  /** DM orchestration routing behavior. */
+  orchestration?: SlackOrchestrationConfig;
   actions?: SlackActionConfig;
   slashCommand?: SlackSlashCommandConfig;
   dm?: SlackDmConfig;

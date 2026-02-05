@@ -12,6 +12,7 @@ import { loadWebMedia } from "../web/media.js";
 import { resolveSlackAccount } from "./accounts.js";
 import { createSlackWebClient } from "./client.js";
 import { markdownToSlackMrkdwnChunks } from "./format.js";
+import { isSlackDmChannel, routeToOrchestration } from "./orchestration-routing.js";
 import { parseSlackTarget } from "./targets.js";
 import { resolveSlackBotToken } from "./token.js";
 
@@ -38,6 +39,11 @@ type SlackSendOpts = {
 export type SlackSendResult = {
   messageId: string;
   channelId: string;
+  /** If message was routed to orchestration channel */
+  routed?: {
+    threadTs: string;
+    threadChannelId: string;
+  };
 };
 
 function resolveToken(params: {
@@ -146,7 +152,22 @@ export async function sendMessageSlack(
   });
   const client = opts.client ?? createSlackWebClient(token);
   const recipient = parseRecipient(to);
-  const { channelId } = await resolveChannelId(client, recipient);
+  const { channelId, isDm } = await resolveChannelId(client, recipient);
+
+  // Check if message should be routed to orchestration channel
+  const orchestrationConfig = account.config.orchestration;
+  const routingResult = await routeToOrchestration({
+    client,
+    config: orchestrationConfig,
+    targetChannelId: channelId,
+    targetIsDm: Boolean(isDm) || isSlackDmChannel(channelId),
+    message: trimmedMessage,
+    threadTs: opts.threadTs,
+  });
+
+  // If routed, send stub to DM instead of full message
+  const effectiveMessage = routingResult.routed ? routingResult.stubMessage : trimmedMessage;
+
   const textLimit = resolveTextChunkLimit(cfg, "slack", account.accountId);
   const chunkLimit = Math.min(textLimit, SLACK_TEXT_LIMIT);
   const tableMode = resolveMarkdownTableMode({
@@ -157,13 +178,13 @@ export async function sendMessageSlack(
   const chunkMode = resolveChunkMode(cfg, "slack", account.accountId);
   const markdownChunks =
     chunkMode === "newline"
-      ? chunkMarkdownTextWithMode(trimmedMessage, chunkLimit, chunkMode)
-      : [trimmedMessage];
+      ? chunkMarkdownTextWithMode(effectiveMessage, chunkLimit, chunkMode)
+      : [effectiveMessage];
   const chunks = markdownChunks.flatMap((markdown) =>
     markdownToSlackMrkdwnChunks(markdown, chunkLimit, { tableMode }),
   );
-  if (!chunks.length && trimmedMessage) {
-    chunks.push(trimmedMessage);
+  if (!chunks.length && effectiveMessage) {
+    chunks.push(effectiveMessage);
   }
   const mediaMaxBytes =
     typeof account.config.mediaMaxMb === "number"
@@ -203,5 +224,13 @@ export async function sendMessageSlack(
   return {
     messageId: lastMessageId || "unknown",
     channelId,
+    ...(routingResult.routed
+      ? {
+          routed: {
+            threadTs: routingResult.threadTs,
+            threadChannelId: routingResult.threadChannelId,
+          },
+        }
+      : {}),
   };
 }
