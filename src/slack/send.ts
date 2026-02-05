@@ -159,10 +159,8 @@ export async function sendMessageSlack(
   const routingResult = await routeToOrchestration({
     client,
     config: orchestrationConfig,
-    targetChannelId: channelId,
     targetIsDm: Boolean(isDm) || isSlackDmChannel(channelId),
     message: trimmedMessage,
-    threadTs: opts.threadTs,
   });
 
   // If routed, send stub to DM instead of full message

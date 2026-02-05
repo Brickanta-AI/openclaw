@@ -21,12 +21,10 @@ export type OrchestrationRoutingResult =
 export async function routeToOrchestration(params: {
   client: WebClient;
   config: SlackOrchestrationConfig | undefined;
-  targetChannelId: string;
   targetIsDm: boolean;
   message: string;
-  threadTs?: string;
 }): Promise<OrchestrationRoutingResult> {
-  const { client, config, targetChannelId, targetIsDm, message, threadTs } = params;
+  const { client, config, targetIsDm, message } = params;
 
   // Check if orchestration routing is enabled
   if (!config?.enabled || !config.channel) {
@@ -71,15 +69,14 @@ export async function routeToOrchestration(params: {
       message_ts: newThreadTs,
     });
 
-    const permalink = permalinkResponse.permalink ?? `slack://channel?id=${orchChannelId}&message=${newThreadTs}`;
+    const permalink =
+      permalinkResponse.permalink ?? `slack://channel?id=${orchChannelId}&message=${newThreadTs}`;
 
     // Build stub message for DM
     const stubTemplate = config.dmStubTemplate ?? DEFAULT_DM_STUB_TEMPLATE;
     const stubMessage = stubTemplate.replace("{link}", permalink);
 
-    logVerbose(
-      `orchestration-routing: routed ${message.length} char message to ${orchChannelId}`,
-    );
+    logVerbose(`orchestration-routing: routed ${message.length} char message to ${orchChannelId}`);
 
     return {
       routed: true,
