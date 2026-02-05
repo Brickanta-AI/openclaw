@@ -34,6 +34,10 @@ type SlackSendOpts = {
   mediaUrl?: string;
   client?: WebClient;
   threadTs?: string;
+  /** Session key for orchestration thread binding */
+  sessionKey?: string;
+  /** Display label for the session */
+  sessionLabel?: string;
 };
 
 export type SlackSendResult = {
@@ -159,6 +163,8 @@ export async function sendMessageSlack(
   const routingResult = await routeToOrchestration({
     client,
     config: orchestrationConfig,
+    sessionKey: opts.sessionKey,
+    sessionLabel: opts.sessionLabel,
     targetIsDm: Boolean(isDm) || isSlackDmChannel(channelId),
     message: trimmedMessage,
   });
